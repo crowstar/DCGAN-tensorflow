@@ -314,7 +314,7 @@ class DCGAN(object):
         scope.reuse_variables()
 
       if not self.y_dim:
-        h0 = tf.nn.dropout(lrelu(conv2d(image, self.df_dim, name='d_h0_conv')), 0.4)
+        h0 = tf.nn.dropout(lrelu(conv2d(noise(image, 0.2), self.df_dim, name='d_h0_conv')), 0.4)
         h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim*2, name='d_h1_conv'))), 0.4)
         h2 = tf.nn.dropout(lrelu(self.d_bn2(conv2d(h1, self.df_dim*4, name='d_h2_conv'))), 0.4)
         h3 = tf.nn.dropout(lrelu(self.d_bn3(conv2d(h2, self.df_dim*8, name='d_h3_conv'))), 0.4)
@@ -325,7 +325,7 @@ class DCGAN(object):
         yb = tf.reshape(y, [self.batch_size, 1, 1, self.y_dim])
         x = conv_cond_concat(image, yb)
 
-        h0 = tf.nn.dropout(lrelu(conv2d(x, self.c_dim + self.y_dim, name='d_h0_conv')), 0.4)
+        h0 = tf.nn.dropout(lrelu(conv2d(noise(x, 0.2), self.c_dim + self.y_dim, name='d_h0_conv')), 0.4)
         h0 = conv_cond_concat(h0, yb)
 
         h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim + self.y_dim, name='d_h1_conv'))), 0.4)

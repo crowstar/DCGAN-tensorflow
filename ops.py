@@ -102,3 +102,9 @@ def linear(input_, output_size, scope=None, stddev=0.02, bias_start=0.0, with_w=
       return tf.matmul(input_, matrix) + bias, matrix, bias
     else:
       return tf.matmul(input_, matrix) + bias
+
+
+# noise layer as defined in https://stackoverflow.com/questions/41174769/additive-gaussian-noise-in-tensorflow
+def noise(input_layer, std):
+    noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32)
+    return input_layer + noise
