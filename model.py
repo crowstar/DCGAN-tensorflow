@@ -385,7 +385,7 @@ class DCGAN(object):
             self.g_bn0(linear(z, self.gfc_dim, 'g_h0_lin')))
         h0 = concat([h0, y], 1)
 
-        h1 = (tf.nn.relu(self.g_bn1(
+        h1 = tf.nn.relu(self.g_bn1(
             linear(h0, self.gf_dim*2*s_h4*s_w4, 'g_h1_lin')))
         h1 = tf.reshape(h1, [self.batch_size, s_h4, s_w4, self.gf_dim * 2])
 
