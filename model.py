@@ -18,7 +18,7 @@ class DCGAN(object):
          batch_size=64, sample_num = 64, output_height=64, output_width=64,
          y_dim=None, z_dim=100, gf_dim=64, df_dim=64,
          gfc_dim=1024, dfc_dim=1024, c_dim=3, dataset_name='default',
-         input_fname_pattern='*.jpg', checkpoint_dir=None, sample_dir=None):
+         input_fname_pattern='**/*.jpg', checkpoint_dir=None, sample_dir=None):
     """
 
     Args:
@@ -74,8 +74,8 @@ class DCGAN(object):
       self.data_X, self.data_y = self.load_mnist()
       self.c_dim = self.data_X[0].shape[-1]
     else:
-      self.data = glob(os.path.join("./data", self.dataset_name, self.input_fname_pattern))
-      imreadImg = imread(self.data[0])
+      self.data_X, self.data_y = self.load_labelled_data()
+      imreadImg = imread(self.data_X[0])
       if len(imreadImg.shape) >= 3: #check if image is a non-grayscale image by checking channel number
         self.c_dim = imread(self.data[0]).shape[-1]
       else:
@@ -162,9 +162,8 @@ class DCGAN(object):
     
     if config.dataset == 'mnist':
       sample_inputs = self.data_X[0:self.sample_num]
-      sample_labels = self.data_y[0:self.sample_num]
     else:
-      sample_files = self.data[0:self.sample_num]
+      sample_files = self.data_X[0:self.sample_num]
       sample = [
           get_image(sample_file,
                     input_height=self.input_height,
@@ -177,7 +176,9 @@ class DCGAN(object):
         sample_inputs = np.array(sample).astype(np.float32)[:, :, :, None]
       else:
         sample_inputs = np.array(sample).astype(np.float32)
-  
+    
+    sample_labels = self.data_y[0:self.sample_num]
+
     counter = 1
     start_time = time.time()
     could_load, checkpoint_counter = self.load(self.checkpoint_dir)
@@ -198,7 +199,7 @@ class DCGAN(object):
       for idx in xrange(0, batch_idxs):
         if config.dataset == 'mnist':
           batch_images = self.data_X[idx*config.batch_size:(idx+1)*config.batch_size]
-          batch_labels = self.data_y[idx*config.batch_size:(idx+1)*config.batch_size]
+        
         else:
           batch_files = self.data[idx*config.batch_size:(idx+1)*config.batch_size]
           batch = [
@@ -213,7 +214,8 @@ class DCGAN(object):
             batch_images = np.array(batch).astype(np.float32)[:, :, :, None]
           else:
             batch_images = np.array(batch).astype(np.float32)
-
+        
+        batch_labels = self.data_y[idx*config.batch_size:(idx+1)*config.batch_size]
         batch_z = np.random.uniform(-1, 1, [config.batch_size, self.z_dim]) \
               .astype(np.float32)
 
@@ -269,9 +271,7 @@ class DCGAN(object):
           self.writer.add_summary(summary_str, counter)
           
           errD_fake = self.d_loss_fake.eval({ self.z: batch_z })
-          errD_real = self.d_loss_real.eval({ self.inputs: batch_images })
-          errG = self.g_loss.eval({self.z: batch_z})
-
+        
         counter += 1
         print("Epoch: [%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f" \
           % (epoch, idx, batch_idxs,
@@ -486,6 +486,32 @@ class DCGAN(object):
       y_vec[i,y[i]] = 1.0
     
     return X/255.,y_vec
+
+    def load_labelled_data(self):
+      # code based on https://github.com/damienpontifex/BlogCodeSamples/blob/master/DataToTfRecords/dir    ectories-to-tfrecords.py    
+     
+     
+      # parent dir full of subdirs for each class
+      data_dir = os.path.join("./data", self.dataset_name)
+        
+      # create a list of all class names and create a class str -> label int dict
+      class_names = os.listdir(data_dir)
+      class_names2id = { label : index for index, label in enumerate(class_names) }
+      
+            
+      # load all file names
+      filenames = glob(os.path.join(data_dir, '**/*.jpg'))
+            
+      # load the label for each file, the ith label corresponds to the ith image
+      labels = (class_names2id[os.path.basename(os.path.dirname(name))] for name in filenames)
+     
+      # use one hot encoding of the labels
+      num_labels = len(class_names)
+      labels = tf.one_hot(labels, num_labels)
+     
+      return filenames, labels
+
+
 
   @property
   def model_dir(self):

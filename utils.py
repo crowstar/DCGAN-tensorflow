@@ -249,27 +249,3 @@ def image_manifold_size(num_images):
   assert manifold_h * manifold_w == num_images
   return manifold_h, manifold_w
 
-def load_labelled_data(self):
-  # code based on https://github.com/damienpontifex/BlogCodeSamples/blob/master/DataToTfRecords/dir    ectories-to-tfrecords.py    
- 
- 
-  # parent dir full of subdirs for each class
-  data_dir = os.path.join("./data", self.dataset_name)
-    
-  # create a list of all class names and create a class str -> label int dict
-  class_names = os.listdir(data_dir)
-  class_names2id = { label : index for index, label in enumerate(class_names) }
-  
-        
-  # load all file names
-  filenames = glob(os.path.join(data_dir, '**/*.jpg'))
-        
-  # load the label for each file, the ith label corresponds to the ith image
-  labels = (class_names2id[os.path.basename(os.path.dirname(name))] for name in filenames)
- 
-  # use one hot encoding of the labels
-  num_labels = len(class_names)
-  labels = tf.one_hot(labels, num_labels)
- 
-  return filenames, labels
-
