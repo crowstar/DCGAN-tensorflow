@@ -261,15 +261,15 @@ def load_labelled_data(self):
   class_names2id = { label : index for index, label in enumerate(class_names) }
   
         
-    # load all file names
-    filenames = glob(os.path.join(data_dir, '**/*.jpg'))
+  # load all file names
+  filenames = glob(os.path.join(data_dir, '**/*.jpg'))
         
-    # load the label for each file, the ith label corresponds to the ith image
-    labels = (class_names2id[os.path.basename(os.path.dirname(name))] for name in filenames)
+  # load the label for each file, the ith label corresponds to the ith image
+  labels = (class_names2id[os.path.basename(os.path.dirname(name))] for name in filenames)
  
-    # use one hot encoding of the labels
-    num_labels = len(class_names)
-    labels = tf.one_hot(labels, num_labels)
+  # use one hot encoding of the labels
+  num_labels = len(class_names)
+  labels = tf.one_hot(labels, num_labels)
  
-    return filenames, labels
+  return filenames, labels
 
