@@ -2,6 +2,7 @@
 Some codes from https://github.com/Newmu/dcgan_code
 """
 from __future__ import division
+import os
 import math
 import json
 import random
@@ -173,8 +174,11 @@ def visualize(sess, dcgan, config, option):
   image_frame_dim = int(math.ceil(config.batch_size**.5))
   if option == 0:
     z_sample = np.random.uniform(-1, 1, size=(config.batch_size, dcgan.z_dim))
-    y = np.random.choice(10, config.batch_size)
-    y_one_hot = np.zeros((config.batch_size, 10))
+
+    data_dir = os.path.join("./data", config.dataset)
+    num_labels = len(os.listdir(data_dir))
+    y = np.random.choice(num_labels, config.batch_size)
+    y_one_hot = np.zeros((config.batch_size, num_labels))
     y_one_hot[np.arange(config.batch_size), y] = 1
     
     samples = sess.run(dcgan.sampler, feed_dict={dcgan.z: z_sample, dcgan.y: y_one_hot})

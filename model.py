@@ -176,7 +176,6 @@ class DCGAN(object):
         sample_inputs = np.array(sample).astype(np.float32)[:, :, :, None]
       else:
         sample_inputs = np.array(sample).astype(np.float32)
-    
     sample_labels = self.data_y[0:self.sample_num]
 
     counter = 1
@@ -189,15 +188,14 @@ class DCGAN(object):
       print(" [!] Load failed...")
 
     for epoch in xrange(config.epoch):
-      
+      print(os.path.join("./data", config.dataset, self.input_fname_pattern))
       # load data
       if config.dataset == 'mnist':
         batch_idxs = min(len(self.data_X), config.train_size) // config.batch_size
-      else:      
-        self.data_X = glob(os.path.join(
-          "./data", config.dataset, self.input_fname_pattern))
+      else:
+        self.data_X = glob(os.path.join("./data", config.dataset, self.input_fname_pattern))
         batch_idxs = min(len(self.data_X), config.train_size) // config.batch_size
-
+      
       for idx in xrange(0, batch_idxs):
         if config.dataset == 'mnist':
           batch_images = self.data_X[idx*config.batch_size:(idx+1)*config.batch_size]
@@ -216,7 +214,7 @@ class DCGAN(object):
             batch_images = np.array(batch).astype(np.float32)[:, :, :, None]
           else:
             batch_images = np.array(batch).astype(np.float32)
- 
+            
         batch_labels = self.data_y[idx*config.batch_size:(idx+1)*config.batch_size]
         batch_z = np.random.uniform(-1, 1, [config.batch_size, self.z_dim]) \
               .astype(np.float32)
@@ -457,8 +455,7 @@ class DCGAN(object):
     return X/255.,y_vec
 
   def load_labelled_data(self):
-    # code based on https://github.com/damienpontifex/BlogCodeSamples/blob/master/DataToTfRecords/dir    ectories-to-tfrecords.py    
-     
+    # code based on https://github.com/damienpontifex/BlogCodeSamples/blob/master/DataToTfRecords/directories-to-tfrecords.py    
      
     # parent dir full of subdirs for each class
     data_dir = os.path.join("./data", self.dataset_name)
@@ -466,19 +463,22 @@ class DCGAN(object):
     # create a list of all class names and create a class str -> label int dict
     class_names = os.listdir(data_dir)
     class_names2id = { label : index for index, label in enumerate(class_names) }
-      
-            
+    
+    
     # load all file names
     filenames = glob(os.path.join(data_dir, '**/*.jpg'))
             
     # load the label for each file, the ith label corresponds to the ith image
-    labels = (class_names2id[os.path.basename(os.path.dirname(name))] for name in filenames)
-     
+    #labels is a generator
+    labels = [class_names2id[os.path.basename(os.path.dirname(name))] for name in filenames]
+    
     # use one hot encoding of the labels
     num_labels = len(class_names)
-    labels = tf.one_hot(labels, num_labels)
+    labels_one_hot = np.zeros((len(list(labels)), num_labels), dtype=np.float)
+    for i, label in enumerate(labels_one_hot):
+      labels_one_hot[i, labels[i]] = 1
      
-    return filenames, labels
+    return filenames, labels_one_hot
 
 
 
