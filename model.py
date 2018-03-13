@@ -14,7 +14,7 @@ def conv_out_size_same(size, stride):
   return int(math.ceil(float(size) / float(stride)))
 
 class DCGAN(object):
-  def __init__(self, sess, input_height=108, input_width=108, crop=True,
+  def __init__(self, sess, architecture='input_concat', input_height=108, input_width=108, crop=True,
          batch_size=64, sample_num = 64, output_height=64, output_width=64,
          y_dim=None, z_dim=100, gf_dim=64, df_dim=64,
          gfc_dim=1024, dfc_dim=1024, c_dim=3, dataset_name='default',
@@ -34,6 +34,8 @@ class DCGAN(object):
     """
     self.sess = sess
     self.crop = crop
+
+    self.architecture = architecture
 
     self.batch_size = batch_size
     self.sample_num = sample_num
@@ -106,10 +108,20 @@ class DCGAN(object):
     self.z_sum = histogram_summary("z", self.z)
 
     self.G                  = self.generator(self.z, self.y)
-    self.D, self.D_logits   = self.discriminator(inputs, self.y, reuse=False)
     self.sampler            = self.sampler(self.z, self.y)
-    self.D_, self.D_logits_ = self.discriminator(self.G, self.y, reuse=True)
-        
+    if self.architecture == 'input_concat':
+      self.D, self.D_logits   = self.discriminator_input_concat(inputs, self.y, reuse=False)
+      self.D_, self.D_logits_ = self.discriminator_input_concat(self.G, self.y, reuse=True)
+    elif self.architecture == 'hidden_concat':
+      self.D, self.D_logits   = self.discriminator_hidden_concat(inputs, self.y, reuse=False)
+      self.D_, self.D_logits_ = self.discriminator_hidden_concat(self.G, self.y, reuse=True)
+    elif self.architecture == 'projection':
+      self.D, self.D_logits   = self.discriminator_projection(inputs, self.y, reuse=False)
+      self.D_, self.D_logits_ = self.discriminator_projection(self.G, self.y, reuse=True)
+
+
+
+
     self.d_sum = histogram_summary("d", self.D)
     self.d__sum = histogram_summary("d_", self.D_)
     self.G_sum = image_summary("G", self.G)
@@ -274,7 +286,7 @@ class DCGAN(object):
           if np.mod(counter, 500) == 2:
             self.save(config.checkpoint_dir, counter)
 
-  def discriminator(self, image, y=None, reuse=False):
+  def discriminator_hidden_concat(self, image, y=None, reuse=False):
     with tf.variable_scope("discriminator") as scope:
       if reuse:
         scope.reuse_variables()
@@ -302,8 +314,81 @@ class DCGAN(object):
         h2 = concat([h2, y], 1)
 
         h3 = linear(h2, 1, 'd_h3_lin')
-        
+
         return tf.nn.sigmoid(h3), h3
+
+  def discriminator_input_concat(self, image, y=None, reuse=False):
+    with tf.variable_scope("discriminator") as scope:
+      if reuse:
+        scope.reuse_variables()
+
+      if not self.y_dim:
+        h0 = tf.nn.dropout(lrelu(conv2d(noise(image, 0.2), self.df_dim, name='d_h0_conv')), 0.4)
+        h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim*2, name='d_h1_conv'))), 0.4)
+        h2 = tf.nn.dropout(lrelu(self.d_bn2(conv2d(h1, self.df_dim*4, name='d_h2_conv'))), 0.4)
+        h3 = tf.nn.dropout(lrelu(self.d_bn3(conv2d(h2, self.df_dim*8, name='d_h3_conv'))), 0.4)
+        h4 = linear(tf.reshape(h3, [self.batch_size, -1]), 1, 'd_h4_lin')
+
+        return tf.nn.sigmoid(h4), h4
+      else:
+        yb = tf.reshape(y, [self.batch_size, 1, 1, self.y_dim])
+        x = conv_cond_concat(image, yb)
+
+        h0 = tf.nn.dropout(lrelu(conv2d(noise(x, 0.2), self.c_dim + self.y_dim, name='d_h0_conv')), 0.4)
+        # h0 = conv_cond_concat(h0, yb)
+
+        h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim, name='d_h1_conv'))), 0.4)
+        h1 = tf.reshape(h1, [self.batch_size, -1])      
+        # h1 = concat([h1, y], 1)
+        
+        h2 = tf.nn.dropout(lrelu(self.d_bn2(linear(h1, self.dfc_dim, 'd_h2_lin'))), 0.4)
+        # h2 = concat([h2, y], 1)
+
+        h3 = linear(h2, 1, 'd_h3_lin')
+
+        return tf.nn.sigmoid(h3), h3
+
+  def discriminator_projection(self, image, y=None, reuse=False):
+    with tf.variable_scope("discriminator") as scope:
+      if reuse:
+        scope.reuse_variables()
+
+      if not self.y_dim:
+        h0 = tf.nn.dropout(lrelu(conv2d(noise(image, 0.2), self.df_dim, name='d_h0_conv')), 0.4)
+        h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim*2, name='d_h1_conv'))), 0.4)
+        h2 = tf.nn.dropout(lrelu(self.d_bn2(conv2d(h1, self.df_dim*4, name='d_h2_conv'))), 0.4)
+        h3 = tf.nn.dropout(lrelu(self.d_bn3(conv2d(h2, self.df_dim*8, name='d_h3_conv'))), 0.4)
+        h4 = linear(tf.reshape(h3, [self.batch_size, -1]), 1, 'd_h4_lin')
+
+        return tf.nn.sigmoid(h4), h4
+      else:
+        x = image
+
+        h0 = tf.nn.dropout(lrelu(conv2d(noise(x, 0.2), self.c_dim, name='d_h0_conv')), 0.4)
+
+        h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim, name='d_h1_conv'))), 0.4)
+        h1 = tf.reshape(h1, [self.batch_size, -1])      
+        
+        h2 = tf.nn.dropout(lrelu(self.d_bn2(linear(h1, self.dfc_dim, 'd_h2_lin'))), 0.4)
+        # h2 = concat([h2, y], 1)
+
+        h3 = linear(h2, 1, 'd_h3_lin')
+        yb = tf.reshape(y, [self.batch_size, 1, 1, self.y_dim])
+        
+        projection = tf.matmul(h3, yb, transpose_a=True)
+        
+
+        # sanity check
+        print(x.get_shape())
+        print(h0.get_shape())
+        print(h1.get_shape())
+        print(h2.get_shape())
+        print(h3.get_shape())
+        print(yb.get_shape())
+        print(projection.get_shape())
+
+        
+        return tf.nn.sigmoid(projection), projection
 
   def generator(self, z, y=None):
     with tf.variable_scope("generator") as scope:

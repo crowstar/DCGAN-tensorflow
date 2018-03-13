@@ -3,11 +3,13 @@ import scipy.misc
 import numpy as np
 
 from model import DCGAN
+
 from utils import pp, visualize, to_json, show_all_variables
 
 import tensorflow as tf
 
 flags = tf.app.flags
+flags.DEFINE_string("architecture", "input_concat", "Which architecture to use. [input_concat, hidden_concat, ac_gan, projection]")
 flags.DEFINE_integer("epoch", 25, "Epoch to train [25]")
 flags.DEFINE_float("learning_rate", 0.0002, "Learning rate of for adam [0.0002]")
 flags.DEFINE_float("beta1", 0.5, "Momentum term of adam [0.5]")
@@ -67,6 +69,7 @@ def main(_):
       
       dcgan = DCGAN(
           sess,
+          architecture=FLAGS.architecture,
           input_width=FLAGS.input_width,
           input_height=FLAGS.input_height,
           output_width=FLAGS.output_width,
