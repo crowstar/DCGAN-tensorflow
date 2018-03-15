@@ -9,6 +9,8 @@ import random
 import pprint
 import scipy.misc
 import numpy as np
+
+from glob import glob
 from time import gmtime, strftime
 from six.moves import xrange
 
