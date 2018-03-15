@@ -545,7 +545,7 @@ class DCGAN(object):
     data_dir = os.path.join("./data", self.dataset_name)
         
     # create a list of all class names and create a class str -> label int dict
-    class_names = os.listdir(data_dir)
+    class_names = glob.glob(os.path.join(data_dir, '*'))
     class_names2id = { label : index for index, label in enumerate(class_names) }
     
     

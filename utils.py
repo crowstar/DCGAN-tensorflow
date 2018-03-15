@@ -176,8 +176,8 @@ def visualize(sess, dcgan, config, option):
     z_sample = np.random.uniform(-1, 1, size=(config.batch_size, dcgan.z_dim))
 
     data_dir = os.path.join("./data", config.dataset)
-    num_labels = len(os.listdir(data_dir))
-    class_names = os.listdir(data_dir)
+    class_names = glob.glob(os.path.join(data_dir, '*'))
+    num_labels = len(class_names)
     class_id2names = { index : label for index, label in enumerate(class_names) }
     for i in range(num_labels):
       y = np.full(config.batch_size, i)
