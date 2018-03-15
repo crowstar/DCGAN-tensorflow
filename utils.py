@@ -177,12 +177,18 @@ def visualize(sess, dcgan, config, option):
 
     data_dir = os.path.join("./data", config.dataset)
     num_labels = len(os.listdir(data_dir))
-    y = np.random.choice(num_labels, config.batch_size)
-    y_one_hot = np.zeros((config.batch_size, num_labels))
-    y_one_hot[np.arange(config.batch_size), y] = 1
+    class_names = os.listdir(data_dir)
+    class_id2names = { index : label for index, label in enumerate(class_names) }
+    for i in range(num_labels):
+      y = np.full(config.batch_size, i)
+      y_one_hot = np.zeros((config.batch_size, num_labels))
+      y_one_hot[np.arange(config.batch_size), y] = 1
+      label = class_id2names[y]
+
+      
+      samples = sess.run(dcgan.sampler, feed_dict={dcgan.z: z_sample, dcgan.y: y_one_hot})
+      save_images(samples, [image_frame_dim, image_frame_dim], './samples/test_{0}-label-{1}.png'.format(strftime("%Y-%m-%d-%H-%M-%S", gmtime()), label))
     
-    samples = sess.run(dcgan.sampler, feed_dict={dcgan.z: z_sample, dcgan.y: y_one_hot})
-    save_images(samples, [image_frame_dim, image_frame_dim], './samples/test_%s.png' % strftime("%Y-%m-%d-%H-%M-%S", gmtime()))
   elif option == 1:
     values = np.arange(0, 1, 1./config.batch_size)
     for idx in xrange(dcgan.z_dim):
