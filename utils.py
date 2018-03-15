@@ -183,8 +183,7 @@ def visualize(sess, dcgan, config, option):
       y = np.full(config.batch_size, i)
       y_one_hot = np.zeros((config.batch_size, num_labels))
       y_one_hot[np.arange(config.batch_size), y] = 1
-      label = class_id2names[y]
-
+      label = class_id2names[i]
       
       samples = sess.run(dcgan.sampler, feed_dict={dcgan.z: z_sample, dcgan.y: y_one_hot})
       save_images(samples, [image_frame_dim, image_frame_dim], './samples/test_{0}-label-{1}.png'.format(strftime("%Y-%m-%d-%H-%M-%S", gmtime()), label))
