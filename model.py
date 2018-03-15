@@ -545,10 +545,12 @@ class DCGAN(object):
     data_dir = os.path.join("./data", self.dataset_name)
         
     # create a list of all class names and create a class str -> label int dict
-    class_names = glob(os.path.join(data_dir, '*'))
+    class_names = [x.rsplit('/', 1)[-1] for x in (glob(os.path.join(data_dir, '*')))]
+    print(class_names)
+    print(os.listdir(data_dir))
     class_names2id = { label : index for index, label in enumerate(class_names) }
-    
-    
+    print(class_names2id)
+
     # load all file names
     filenames = glob(os.path.join(data_dir, '**/*.jpg'))
             

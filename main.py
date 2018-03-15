@@ -3,6 +3,7 @@ import scipy.misc
 import numpy as np
 
 from model import DCGAN
+from glob import glob
 
 from utils import pp, visualize, to_json, show_all_variables
 
@@ -65,7 +66,8 @@ def main(_):
           sample_dir=FLAGS.sample_dir)
     else:
       data_dir = os.path.join("./data", FLAGS.dataset)
-      num_labels = len(os.listdir(data_dir))
+      class_names = [x.rsplit('/', 1)[-1] for x in (glob(os.path.join(data_dir, '*')))]
+      num_labels = len(class_names)
       
       dcgan = DCGAN(
           sess,
