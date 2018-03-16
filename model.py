@@ -118,7 +118,9 @@ class DCGAN(object):
     elif self.architecture == 'projection':
       self.D, self.D_logits   = self.discriminator_projection(inputs, self.y, reuse=False)
       self.D_, self.D_logits_ = self.discriminator_projection(self.G, self.y, reuse=True)
-
+    elif self.architecture == 'aux':
+      self.D, self.D_logits, self.Aux, self.Aux_logits = self.discriminator_aux(inputs, self.y, reuse=False)
+      self.D_, self.D_logits_, self.Aux_, self.Aux_logits_ = self.discriminator_aux(self.G, self.y, reuse=True)
 
 
 
@@ -132,6 +134,12 @@ class DCGAN(object):
       except:
         return tf.nn.sigmoid_cross_entropy_with_logits(logits=x, targets=y)
 
+    def softmax_cross_entropy_with_logits(x, y):
+      try:
+        return tf.nn.softmax_cross_entropy_with_logits(logits=x, labels=y)
+      except:
+        return tf.nn.sigmoid_cross_entropy_with_logits(logits=x, targets=y)
+      
     self.d_loss_real = tf.reduce_mean(
       sigmoid_cross_entropy_with_logits(self.D_logits, tf.ones_like(self.D)))
     self.d_loss_fake = tf.reduce_mean(
@@ -141,9 +149,17 @@ class DCGAN(object):
 
     self.d_loss_real_sum = scalar_summary("d_loss_real", self.d_loss_real)
     self.d_loss_fake_sum = scalar_summary("d_loss_fake", self.d_loss_fake)
-                             
+    
     self.d_loss = self.d_loss_real + self.d_loss_fake
 
+    # not sure how to incorporate the aux loss yet
+    if self.architecture == 'aux':
+      self.aux_loss_real = tf.reduce_mean(
+        softmax_cross_entropy_with_logits(self.Aux_logits, self.y))
+      self.aux_loss_fake = tf.reduce_mean(
+        softmax_cross_entropy_with_logits(self.Aux_logits_, self.y))
+      self.d_loss += self.aux_loss_real + self.aux_loss_fake
+      
     self.g_loss_sum = scalar_summary("g_loss", self.g_loss)
     self.d_loss_sum = scalar_summary("d_loss", self.d_loss)
 
@@ -347,6 +363,39 @@ class DCGAN(object):
         h3 = linear(h2, 1, 'd_h3_lin')
 
         return tf.nn.sigmoid(h3), h3
+
+  def discriminator_aux(self, image, y=None, reuse=False):
+    with tf.variable_scope("discriminator") as scope:
+      if reuse:
+        scope.reuse_variables()
+
+      if not self.y_dim:
+        h0 = tf.nn.dropout(lrelu(conv2d(noise(image, 0.2), self.df_dim, name='d_h0_conv')), 0.4)
+        h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim*2, name='d_h1_conv'))), 0.4)
+        h2 = tf.nn.dropout(lrelu(self.d_bn2(conv2d(h1, self.df_dim*4, name='d_h2_conv'))), 0.4)
+        h3 = tf.nn.dropout(lrelu(self.d_bn3(conv2d(h2, self.df_dim*8, name='d_h3_conv'))), 0.4)
+        h4 = linear(tf.reshape(h3, [self.batch_size, -1]), 1, 'd_h4_lin')
+
+        return tf.nn.sigmoid(h4), h4
+      else:
+        yb = tf.reshape(y, [self.batch_size, 1, 1, self.y_dim])
+        x = conv_cond_concat(image, yb)
+
+        h0 = tf.nn.dropout(lrelu(conv2d(noise(x, 0.2), self.c_dim + self.y_dim, name='d_h0_conv')), 0.4)
+        # h0 = conv_cond_concat(h0, yb)
+
+        h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim, name='d_h1_conv'))), 0.4)
+        h1 = tf.reshape(h1, [self.batch_size, -1])      
+        # h1 = concat([h1, y], 1)
+        
+        h2 = tf.nn.dropout(lrelu(self.d_bn2(linear(h1, self.dfc_dim, 'd_h2_lin'))), 0.4)
+        # h2 = concat([h2, y], 1)
+
+        h3_dis = linear(h2, 1, 'd_h3_lin')
+        h3_aux = linear(h2, self.y_dim, 'd_h3aux_lin')
+
+        #returns dis_prob, dis_logits, aux_prob, aux_logits
+        return tf.nn.sigmoid(h3), h3, tf.nn.softmax(h3_aux), h3_aux
 
   def discriminator_projection(self, image, y=None, reuse=False):
     with tf.variable_scope("discriminator") as scope:
