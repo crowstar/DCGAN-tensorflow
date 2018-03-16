@@ -118,7 +118,9 @@ class DCGAN(object):
     elif self.architecture == 'projection':
       self.D, self.D_logits   = self.discriminator_projection(inputs, self.y, reuse=False)
       self.D_, self.D_logits_ = self.discriminator_projection(self.G, self.y, reuse=True)
-
+    elif self.architecture == 'aux':
+      self.D, self.D_logits, self.Aux, self.Aux_logits = self.discriminator_aux(inputs, self.y, reuse=False)
+      self.D_, self.D_logits_, self.Aux_, self.Aux_logits_ = self.discriminator_aux(self.G, self.y, reuse=True)
 
 
 
@@ -132,6 +134,12 @@ class DCGAN(object):
       except:
         return tf.nn.sigmoid_cross_entropy_with_logits(logits=x, targets=y)
 
+    def softmax_cross_entropy_with_logits(x, y):
+      try:
+        return tf.nn.softmax_cross_entropy_with_logits(logits=x, labels=y)
+      except:
+        return tf.nn.sigmoid_cross_entropy_with_logits(logits=x, targets=y)
+      
     self.d_loss_real = tf.reduce_mean(
       sigmoid_cross_entropy_with_logits(self.D_logits, tf.ones_like(self.D)))
     self.d_loss_fake = tf.reduce_mean(
@@ -141,9 +149,17 @@ class DCGAN(object):
 
     self.d_loss_real_sum = scalar_summary("d_loss_real", self.d_loss_real)
     self.d_loss_fake_sum = scalar_summary("d_loss_fake", self.d_loss_fake)
-                             
+    
     self.d_loss = self.d_loss_real + self.d_loss_fake
 
+    # not sure how to incorporate the aux loss yet
+    if self.architecture == 'aux':
+      self.aux_loss_real = tf.reduce_mean(
+        softmax_cross_entropy_with_logits(self.Aux_logits, self.y))
+      self.aux_loss_fake = tf.reduce_mean(
+        softmax_cross_entropy_with_logits(self.Aux_logits_, self.y))
+      self.d_loss += self.aux_loss_real + self.aux_loss_fake
+      
     self.g_loss_sum = scalar_summary("g_loss", self.g_loss)
     self.d_loss_sum = scalar_summary("d_loss", self.d_loss)
 
