@@ -317,7 +317,7 @@ class DCGAN(object):
 
         return tf.nn.sigmoid(h3), h3
 
-  def discriminator_input_concat(self, image, y=None, reuse=False):
+  def discriminator_aux(self, image, y=None, reuse=False):
     with tf.variable_scope("discriminator") as scope:
       if reuse:
         scope.reuse_variables()
@@ -344,9 +344,11 @@ class DCGAN(object):
         h2 = tf.nn.dropout(lrelu(self.d_bn2(linear(h1, self.dfc_dim, 'd_h2_lin'))), 0.4)
         # h2 = concat([h2, y], 1)
 
-        h3 = linear(h2, 1, 'd_h3_lin')
+        h3_dis = linear(h2, 1, 'd_h3_lin')
+        h3_aux = linear(h2, self.y_dim, 'd_h3aux_lin')
 
-        return tf.nn.sigmoid(h3), h3
+        #returns dis_prob, dis_logits, aux_prob, aux_logits
+        return tf.nn.sigmoid(h3), h3, tf.nn.softmax(h3_aux), h3_aux
 
   def discriminator_projection(self, image, y=None, reuse=False):
     with tf.variable_scope("discriminator") as scope:
