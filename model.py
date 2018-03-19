@@ -315,24 +315,41 @@ class DCGAN(object):
         h4 = linear(tf.reshape(h3, [self.batch_size, -1]), 1, 'd_h4_lin')
 
         return tf.nn.sigmoid(h4), h4
+
       else:
+
         yb = tf.reshape(y, [self.batch_size, 1, 1, self.y_dim])
         image = noise(image, 0.2)
         x = conv_cond_concat(image, yb)
 
-        h0 = tf.nn.dropout(lrelu(conv2d(x, self.c_dim + self.y_dim, name='d_h0_conv')), 0.4)
+        h0 = tf.nn.dropout(lrelu(conv2d(x, self.df_dim, name='d_h0_conv')), 0.4)
         h0 = conv_cond_concat(h0, yb)
 
-        h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim + self.y_dim, name='d_h1_conv'))), 0.4)
-        h1 = tf.reshape(h1, [self.batch_size, -1])      
-        h1 = concat([h1, y], 1)
+        h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim*2, name='d_h1_conv'))), 0.4)
+        h1 = conv_cond_concat(h1, yb)
+    
+        h2 = tf.nn.dropout(lrelu(self.d_bn2(conv2d(h1, self.df_dim*4, name='d_h2_conv'))), 0.4)
+        h2 = conv_cond_concat(h2, yb)
         
-        h2 = tf.nn.dropout(lrelu(self.d_bn2(linear(h1, self.dfc_dim, 'd_h2_lin'))), 0.4)
-        h2 = concat([h2, y], 1)
+        h3 = tf.nn.dropout(lrelu(self.d_bn3(conv2d(h2, self.df_dim*8, name='d_h3_conv'))), 0.4)
+        
+        h3 = tf.reshape(h3, [self.batch_size, -1])
+        h3 = concat([h3, y], 1)
 
-        h3 = linear(h2, 1, 'd_h3_lin')
+        h4 = linear(h3, 1, 'd_h4_lin')
 
-        return tf.nn.sigmoid(h3), h3
+
+
+        # sanity check
+        print(x.get_shape())
+        print(yb.get_shape())
+        print(h0.get_shape())
+        print(h1.get_shape())
+        print(h2.get_shape())
+        print(h3.get_shape())
+        print(h4.get_shape())
+
+        return tf.nn.sigmoid(h4), h4
 
   def discriminator_input_concat(self, image, y=None, reuse=False):
     with tf.variable_scope("discriminator") as scope:
