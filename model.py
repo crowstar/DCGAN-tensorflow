@@ -398,7 +398,7 @@ class DCGAN(object):
         image = noise(image, 0.2)
         x = conv_cond_concat(image, yb)
 
-        h0 = tf.nn.dropout(lrelu(conv2d(x, 0.2, self.c_dim + self.y_dim, name='d_h0_conv')), 0.4)
+        h0 = tf.nn.dropout(lrelu(conv2d(x, self.c_dim + self.y_dim, name='d_h0_conv')), 0.4)
         # h0 = conv_cond_concat(h0, yb)
 
         h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim, name='d_h1_conv'))), 0.4)
@@ -412,7 +412,7 @@ class DCGAN(object):
         h3_aux = linear(h2, self.y_dim, 'd_h3aux_lin')
 
         #returns dis_prob, dis_logits, aux_prob, aux_logits
-        return tf.nn.sigmoid(h3), h3, tf.nn.softmax(h3_aux), h3_aux
+        return tf.nn.sigmoid(h3_dis), h3_dis, tf.nn.softmax(h3_aux), h3_aux
 
   def discriminator_projection(self, image, y=None, reuse=False):
     with tf.variable_scope("discriminator") as scope:
