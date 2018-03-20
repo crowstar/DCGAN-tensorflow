@@ -368,7 +368,7 @@ class DCGAN(object):
       else:
 
         yb = tf.reshape(y, [self.batch_size, 1, 1, self.y_dim])
-        #x = noise(image, 0.2)
+        image = noise(image, 0.2)
         x = conv_cond_concat(image, yb)
 
         h0 = tf.nn.dropout(lrelu(conv2d(x, self.c_dim + self.y_dim, name='d_h0_conv')), 0.4)
