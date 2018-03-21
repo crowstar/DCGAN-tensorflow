@@ -348,6 +348,7 @@ class DCGAN(object):
         print(h2.get_shape())
         print(h3.get_shape())
         print(h4.get_shape())
+        print()
 
         return tf.nn.sigmoid(h4), h4
 
@@ -428,33 +429,57 @@ class DCGAN(object):
 
         return tf.nn.sigmoid(h4), h4
       else:
-        x = image
+        # x = image
         
-        h0 = tf.nn.dropout(lrelu(conv2d(noise(x, 0.2), self.c_dim, name='d_h0_conv')), 0.4)
+        # h0 = tf.nn.dropout(lrelu(conv2d(noise(x, 0.2), self.c_dim, name='d_h0_conv')), 0.4)
 
-        h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim, name='d_h1_conv'))), 0.4)
-        h1 = tf.reshape(h1, [self.batch_size, -1])      
+        # h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim, name='d_h1_conv'))), 0.4)
+        # h1 = tf.reshape(h1, [self.batch_size, -1])      
         
-        h2 = tf.nn.dropout(lrelu(self.d_bn2(linear(h1, self.dfc_dim, 'd_h2_lin'))), 0.4)
-        # h2 = concat([h2, y], 1)
+        # h2 = tf.nn.dropout(lrelu(self.d_bn2(linear(h1, self.dfc_dim, 'd_h2_lin'))), 0.4)
+        # # h2 = concat([h2, y], 1)
 
-        h3 = linear(h2, 1, 'd_h3_lin')
-        yb = tf.reshape(y, [self.batch_size, 1, 1, self.y_dim])
+        # h3 = linear(h2, 1, 'd_h3_lin')
+        # yb = tf.reshape(y, [self.batch_size, 1, 1, self.y_dim])
         
-        projection = tf.matmul(h3, yb, transpose_a=True)
+        # projection = tf.matmul(h3, yb, transpose_a=True)
         
+
+
+        x = noise(image, 0.2)
+        yb = linear(y, 8192)
+
+        h0 = tf.nn.dropout(lrelu(conv2d(x, self.c_dim, name='d_h0_conv')), 0.4)
+        h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim*2, name='d_h1_conv'))), 0.4)
+        h2 = tf.nn.dropout(lrelu(self.d_bn2(conv2d(h1, self.df_dim*4, name='d_h2_conv'))), 0.4)
+        h3 = tf.nn.dropout(lrelu(self.d_bn3(conv2d(h2, self.df_dim*8, name='d_h3_conv'))), 0.4)
+
+        h3 = tf.reshape(h3, [self.batch_size, -1])
+
+        h4 = linear(h3, 1, 'd_h4_lin')
+
+        dp = tf.reduce_sum(tf.multiply(h3,yb), 1, keep_dims=True)
+
+        output = tf.add(h4, dp)
+
 
         # sanity check
         print(x.get_shape())
+        print(yb.get_shape())
+
         print(h0.get_shape())
         print(h1.get_shape())
         print(h2.get_shape())
         print(h3.get_shape())
-        print(yb.get_shape())
-        print(projection.get_shape())
+        print(h4.get_shape())
+        print()
+        print(dp.get_shape())
+        print(output.get_shape())
+        print()
+        # print(projection.get_shape())
 
         
-        return tf.nn.sigmoid(projection), projection
+        return tf.nn.sigmoid(output), output
 
   def generator(self, z, y=None):
     with tf.variable_scope("generator") as scope:
