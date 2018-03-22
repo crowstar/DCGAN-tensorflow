@@ -429,22 +429,6 @@ class DCGAN(object):
 
         return tf.nn.sigmoid(h4), h4
       else:
-        # x = image
-        
-        # h0 = tf.nn.dropout(lrelu(conv2d(noise(x, 0.2), self.c_dim, name='d_h0_conv')), 0.4)
-
-        # h1 = tf.nn.dropout(lrelu(self.d_bn1(conv2d(h0, self.df_dim, name='d_h1_conv'))), 0.4)
-        # h1 = tf.reshape(h1, [self.batch_size, -1])      
-        
-        # h2 = tf.nn.dropout(lrelu(self.d_bn2(linear(h1, self.dfc_dim, 'd_h2_lin'))), 0.4)
-        # # h2 = concat([h2, y], 1)
-
-        # h3 = linear(h2, 1, 'd_h3_lin')
-        # yb = tf.reshape(y, [self.batch_size, 1, 1, self.y_dim])
-        
-        # projection = tf.matmul(h3, yb, transpose_a=True)
-        
-
 
         x = noise(image, 0.2)
         yb = linear(y, 8192)
