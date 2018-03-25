@@ -534,21 +534,22 @@ class DCGAN(object):
         z = tf.reshape(
           z, [-1, s_h16, s_w16, (self.gf_dim*8)])
         
-        h0 = tf.nn.dropout(tf.nn.relu(self.g_bn0(z)), 0.4)
+        h0 = tf.nn.relu(self.g_bn0(z))
         #print(yb.get_shape(), h0.get_shape())
         h0 = conv_cond_concat(h0, yb)
 
-        h1 = tf.nn.dropout(tf.nn.relu(self.g_bn1(
-            deconv2d(h0, [self.batch_size, s_h8, s_w8, self.gf_dim*4], name='g_h1'))), 0.4)
+        h1 = tf.nn.relu(self.g_bn1(
+            deconv2d(h0, [self.batch_size, s_h8, s_w8, self.gf_dim*4], name='g_h1')))
         h1 = conv_cond_concat(h1, yb)
 
-        h2 = tf.nn.dropout(tf.nn.relu(self.g_bn2(
-          deconv2d(h1, [self.batch_size, s_h4, s_w4, self.gf_dim*2], name='g_h2'))), 0.4)
+        h2 = tf.nn.relu(self.g_bn2(
+          deconv2d(h1, [self.batch_size, s_h4, s_w4, self.gf_dim*2], name='g_h2')))
         h2 = conv_cond_concat(h2, yb)
 
-        h3 = tf.nn.dropout(tf.nn.relu(self.g_bn3(
-          deconv2d(h2, [self.batch_size, s_h2, s_w2, self.gf_dim*1], name='g_h3'))), 0.4)
-
+        h3 = tf.nn.relu(self.g_bn3(
+          deconv2d(h2, [self.batch_size, s_h2, s_w2, self.gf_dim*1], name='g_h3')))
+        h3 = conv_cond_concat(h3, yb)
+        
         h4 = deconv2d(h3, [self.batch_size, s_h, s_w, self.c_dim], name='g_h4')
 
         return tf.nn.tanh(h4)
@@ -606,17 +607,18 @@ class DCGAN(object):
         #print(yb.get_shape(), h0.get_shape())
         h0 = conv_cond_concat(h0, yb)
 
-        h1 = tf.nn.dropout(tf.nn.relu(self.g_bn1(
-            deconv2d(h0, [self.batch_size, s_h8, s_w8, self.gf_dim*4], name='g_h1'), train=False)), 0.4)
+        h1 = tf.nn.relu(self.g_bn1(
+            deconv2d(h0, [self.batch_size, s_h8, s_w8, self.gf_dim*4], name='g_h1'), train=False))
         h1 = conv_cond_concat(h1, yb)
 
-        h2 = tf.nn.dropout(tf.nn.relu(self.g_bn2(
-          deconv2d(h1, [self.batch_size, s_h4, s_w4, self.gf_dim*2], name='g_h2'), train=False)), 0.4)
+        h2 = tf.nn.relu(self.g_bn2(
+          deconv2d(h1, [self.batch_size, s_h4, s_w4, self.gf_dim*2], name='g_h2'), train=False))
         h2 = conv_cond_concat(h2, yb)
 
-        h3 = tf.nn.dropout(tf.nn.relu(self.g_bn3(
-          deconv2d(h2, [self.batch_size, s_h2, s_w2, self.gf_dim*1], name='g_h3'), train=False)), 0.4)
-
+        h3 = tf.nn.relu(self.g_bn3(
+          deconv2d(h2, [self.batch_size, s_h2, s_w2, self.gf_dim*1], name='g_h3'), train=False))
+        h3 = conv_cond_concat(h3, yb)
+        
         h4 = deconv2d(h3, [self.batch_size, s_h, s_w, self.c_dim], name='g_h4')
 
         return tf.nn.tanh(h4)
